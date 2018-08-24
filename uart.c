@@ -11,7 +11,7 @@
 #endif
 
 #ifdef __linux__
-int uartInit ( uartHandler bus, uint32_t speed, UART_FLAGS flags )
+int uartInit ( uartHandler bus, uint32_t speed, UART_INIT_FLAGS flags )
 {
 	uint16_t i = 0;
 	struct termios uart;
@@ -109,7 +109,38 @@ int uartSetReadTimeout ( uartHandler bus, uint8_t time, uint8_t min )
 	return ( tcsetattr( bus, TCSANOW, &uart ) );
 }
 #else
-int uartInit ( uartHandler bus, uint32_t speed, UART_FLAGS flags )
+uartHandler uartOpen ( const char * const busName, UART_OPEN_FLAGS flags )
+{
+	DWORD dwDesiredAccess = 0;
+	DWORD dwCreationDisposition = 0;
+
+	switch ( flags & ( UART_RDONLY | UART_WRONLY | UART_RDWR ) )
+	{
+		case UART_RDONLY:
+		{
+			dwDesiredAccess = GENERIC_READ;
+			break;
+		}
+		case UART_WRONLY:
+		{
+			dwDesiredAccess = GENERIC_WRITE;
+			break;
+		}
+		case UART_RDWR:
+		{
+			dwDesiredAccess = GENERIC_READ | GENERIC_WRITE;
+			break;
+		}
+		default:
+		{
+			return ( INVALID_HANDLE_VALUE );
+		}
+	}
+	
+	return ( CreateFile ( busName, dwDesiredAccess, 0, NULL, OPEN_EXISTING, 0, NULL) );
+}
+
+int uartInit ( uartHandler bus, uint32_t speed, UART_INIT_FLAGS flags )
 {
 	uint16_t i = 0;
 	DCB dcb;
