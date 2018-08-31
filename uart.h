@@ -102,7 +102,7 @@ void uartWrite ( uartHandler bus, uint8_t * buf, size_t size );
 /// \param[ in ] size : buffer max size
 /// \biref read data from uart to a buffer
 ////////////////////////////////////////////////////////////////////////////////
-void uartRead ( uartHandler bus, uint8_t * buf, size_t size );
+int uartRead ( uartHandler bus, uint8_t * buf, size_t size );
 
 ////////////////////////////////////////////////////////////////////////////////
 /// \fn void uartClose ( uartHandler bus );
@@ -126,7 +126,6 @@ int uartValide ( uartHandler bus );
 #define uartValide(bus) ( bus > 0 )
 #else
 #define uartWrite(bus,buf,size) WriteFile(bus,buf,size,NULL,NULL)
-#define uartRead(bus,buf,size) ReadFile(bus,buf,size,NULL,NULL)
 #define uartClose(bus) CloseHandle(bus)
 #define uartValide(bus) ( bus != INVALID_HANDLE_VALUE )
 #endif

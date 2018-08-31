@@ -112,7 +112,6 @@ int uartSetReadTimeout ( uartHandler bus, uint8_t time, uint8_t min )
 uartHandler uartOpen ( const char * const busName, UART_OPEN_FLAGS flags )
 {
 	DWORD dwDesiredAccess = 0;
-	DWORD dwCreationDisposition = 0;
 
 	switch ( flags & ( UART_RDONLY | UART_WRONLY | UART_RDWR ) )
 	{
@@ -137,7 +136,7 @@ uartHandler uartOpen ( const char * const busName, UART_OPEN_FLAGS flags )
 		}
 	}
 	
-	return ( CreateFile ( busName, dwDesiredAccess, 0, NULL, OPEN_EXISTING, 0, NULL) );
+	return ( CreateFile ( busName, dwDesiredAccess, 0, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, NULL) );
 }
 
 int uartInit ( uartHandler bus, uint32_t speed, UART_INIT_FLAGS flags )
@@ -244,6 +243,20 @@ int uartSetReadTimeout ( uartHandler bus, uint8_t time, uint8_t min )
 	timeouts.WriteTotalTimeoutConstant = 0;
 
 	return ( SetCommTimeouts ( bus, &timeouts ) == 0 );
+}
+
+int uartRead ( uartHandler bus, uint8_t * buf, size_t size )
+{
+	DWORD rp;
+
+	if ( !ReadFile ( bus, buf, size, &rp, NULL ) )
+	{
+		return ( 0 );
+	}
+	else
+	{
+		return ( (int)rp );
+	}
 }
 
 
