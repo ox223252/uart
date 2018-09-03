@@ -3,10 +3,10 @@
 
 #include <stdint.h>
 
-#ifdef __linux__
 #include <unistd.h>
 #include <fcntl.h>
-#else
+
+#ifndef __lineux__
 #include <windows.h>
 #endif
 
@@ -24,32 +24,8 @@ typedef enum
 }
 UART_INIT_FLAGS;
 
-/// \typedef uartHandler
-/// \brief var type to store uart handler
-#ifdef __linux__
-typedef enum
-{
-	UART_RDONLY = O_RDONLY,
-	UART_WRONLY = O_WRONLY,
-	UART_RDWR =   O_RDWR
-}
-UART_OPEN_FLAGS;
-
-typedef int uartHandler;
-#else
-typedef enum
-{
-	UART_RDONLY = 0x01,
-	UART_WRONLY = 0x02,
-	UART_RDWR =   0x04
-}
-UART_OPEN_FLAGS;
-
-typedef HANDLE uartHandler;
-#endif
-
 ////////////////////////////////////////////////////////////////////////////////
-/// \fn uartHandler uartOpen ( const char * const busName, 
+/// \fn int uartOpen ( const char * const busName, 
 ///     const UART_OPEN_FLAGS flags );
 /// \param[ in ] busName : string what contain bus name
 ///     Linux: "/dev/ttyACMx"
@@ -58,10 +34,10 @@ typedef HANDLE uartHandler;
 /// \brief this function open uart
 /// \retrun uart handler or error code need to be tested by uartValide ( )
 ////////////////////////////////////////////////////////////////////////////////
-uartHandler uartOpen ( const char * const busName, const UART_OPEN_FLAGS flags );
+int uartOpen ( const char * const busName, const int flags );
 
 ////////////////////////////////////////////////////////////////////////////////
-/// \fn int uartInit ( uartHandler bus, uint32_t speed, UART_INIT_FLAGS flags );
+/// \fn int uartInit ( int bus, uint32_t speed, UART_INIT_FLAGS flags );
 /// \param[ in ] bus : handler returned by uartOpen ( )
 /// \param[ in ] speed : baudrate available
 ///     50, 75, 110,  134, 150, 200, 300, 600, 1200, 1800, 2400, 4800, 9600
@@ -71,10 +47,10 @@ uartHandler uartOpen ( const char * const busName, const UART_OPEN_FLAGS flags )
 /// \brief this will set uart port to the defined config
 /// \retrun if 0 then OK else error
 ////////////////////////////////////////////////////////////////////////////////
-int uartInit ( uartHandler bus, uint32_t speed, UART_INIT_FLAGS flags );
+int uartInit ( char * busName, uint32_t speed, UART_INIT_FLAGS flags );
 
 ////////////////////////////////////////////////////////////////////////////////
-/// \fn int uartSetReadTimeout ( uartHandler bus, uint8_t time, uint8_t min );
+/// \fn int uartSetReadTimeout ( int bus, uint8_t time, uint8_t min );
 /// \param[ in ] bus : handler returned by uartOpen ( )
 /// \param[ in ] time : max time between two bytes
 /// \param[ in ] min : nb min of bytes read before return
@@ -84,50 +60,45 @@ int uartInit ( uartHandler bus, uint32_t speed, UART_INIT_FLAGS flags );
 /// \return if 0 OK else error
 /// \bug i'm not sure this function fully works on Windows
 ////////////////////////////////////////////////////////////////////////////////
-int uartSetReadTimeout ( uartHandler bus, uint8_t time, uint8_t min );
+int uartSetReadTimeout ( int bus, uint8_t time, uint8_t min );
 
 ////////////////////////////////////////////////////////////////////////////////
-/// \fn void uartWrite ( uartHandler bus, uint8_t * buf, size_t size );
+/// \fn void uartWrite ( int bus, uint8_t * buf, size_t size );
 /// \param[ in ] bus : handler returned by uartOpen ( )
 /// \param[ in ] buf : buffer of data
 /// \param[ in ] size : buffer max size
 /// \biref write data on uart from a buffer
 ////////////////////////////////////////////////////////////////////////////////
-void uartWrite ( uartHandler bus, uint8_t * buf, size_t size );
+void uartWrite ( int bus, uint8_t * buf, size_t size );
 
 ////////////////////////////////////////////////////////////////////////////////
-/// \fn void uartRead ( uartHandler bus, uint8_t * buf, size_t size );
+/// \fn void uartRead ( int bus, uint8_t * buf, size_t size );
 /// \param[ in ] bus : handler returned by uartOpen ( )
 /// \param[ in ] buf : buffer to store read data
 /// \param[ in ] size : buffer max size
 /// \biref read data from uart to a buffer
 ////////////////////////////////////////////////////////////////////////////////
-int uartRead ( uartHandler bus, uint8_t * buf, size_t size );
+int uartRead ( int bus, uint8_t * buf, size_t size );
 
 ////////////////////////////////////////////////////////////////////////////////
-/// \fn void uartClose ( uartHandler bus );
+/// \fn void uartClose ( int bus );
 /// \brief close uart handler
 ////////////////////////////////////////////////////////////////////////////////
-void uartClose ( uartHandler bus );
+void uartClose ( int bus );
 
 ////////////////////////////////////////////////////////////////////////////////
-/// \fn int uartValide ( uartHandler bus );
+/// \fn int uartValide ( int bus );
 /// \param[ in ] bus : handler returned by uartOpen ( )
 /// \biref test if handler is valide
 /// \return if 0 then handler is valide else it's not valide
 ////////////////////////////////////////////////////////////////////////////////
-int uartValide ( uartHandler bus );
+int uartValide ( int bus );
 
-#ifdef __linux__
+
+#define uartOpen(busName,O_RDWR) open(busName,O_RDWR) 
 #define uartWrite(bus,buf,size) write(bus,buf,size) 
 #define uartRead(bus,buf,size) read(bus,buf,size) 
 #define uartClose(bus) close(bus) 
-#define uartOpen(busName,O_RDWR) open(busName,O_RDWR) 
 #define uartValide(bus) ( bus > 0 )
-#else
-#define uartWrite(bus,buf,size) WriteFile(bus,buf,size,NULL,NULL)
-#define uartClose(bus) CloseHandle(bus)
-#define uartValide(bus) ( bus != INVALID_HANDLE_VALUE )
-#endif
 
 #endif

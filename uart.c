@@ -11,7 +11,7 @@
 #endif
 
 #ifdef __linux__
-int uartInit ( uartHandler bus, uint32_t speed, UART_INIT_FLAGS flags )
+int uartInit ( int bus, uint32_t speed, UART_INIT_FLAGS flags )
 {
 	uint16_t i = 0;
 	struct termios uart;
@@ -97,7 +97,7 @@ int uartInit ( uartHandler bus, uint32_t speed, UART_INIT_FLAGS flags )
 	return ( tcsetattr ( bus, TCSANOW, &uart ) );
 }
 
-int uartSetReadTimeout ( uartHandler bus, uint8_t time, uint8_t min )
+int uartSetReadTimeout ( int bus, uint8_t time, uint8_t min )
 {
 	static struct termios uart;
 
@@ -109,51 +109,14 @@ int uartSetReadTimeout ( uartHandler bus, uint8_t time, uint8_t min )
 	return ( tcsetattr( bus, TCSANOW, &uart ) );
 }
 #else
-uartHandler uartOpen ( const char * const busName, UART_OPEN_FLAGS flags )
+int uartInit ( char * busName, uint32_t speed, UART_INIT_FLAGS flags )
 {
-	DWORD dwDesiredAccess = 0;
+	uint8_t data = 8;
+	char parity = 'N';
+	uint8_t stop = 1;
+	int i;
 
-	switch ( flags & ( UART_RDONLY | UART_WRONLY | UART_RDWR ) )
-	{
-		case UART_RDONLY:
-		{
-			dwDesiredAccess = GENERIC_READ;
-			break;
-		}
-		case UART_WRONLY:
-		{
-			dwDesiredAccess = GENERIC_WRITE;
-			break;
-		}
-		case UART_RDWR:
-		{
-			dwDesiredAccess = GENERIC_READ | GENERIC_WRITE;
-			break;
-		}
-		default:
-		{
-			return ( INVALID_HANDLE_VALUE );
-		}
-	}
-	
-	return ( CreateFile ( busName, dwDesiredAccess, 0, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, NULL) );
-}
-
-int uartInit ( uartHandler bus, uint32_t speed, UART_INIT_FLAGS flags )
-{
-	uint16_t i = 0;
-	DCB dcb;
-
-	FillMemory ( &dcb, sizeof ( dcb ), 0 );
-
-	// get old mask
-	if ( GetCommState ( bus, &dcb ) == 0 )
-	{
-		return ( __LINE__ );
-	}
-
-	// set speed
-	dcb.BaudRate = speed ;
+	char cmd[ 32 ] = { 0 };
 
 	// set config
 	for ( i = 1; i != 0; i <<= 1 )
@@ -162,50 +125,47 @@ int uartInit ( uartHandler bus, uint32_t speed, UART_INIT_FLAGS flags )
 		{
 			case UART_DATA_5:
 			{
-				dcb.ByteSize = 5;
+				data = 5;
 				break;
 			}
 			case UART_DATA_6:
 			{
-				dcb.ByteSize = 6;
+				data = 6;
 				break;
 			}
 			case UART_DATA_7:
 			{
-				dcb.ByteSize = 7;
+				data = 7;
 				break;
 			}
 			case UART_DATA_8:
 			{
-				dcb.ByteSize = 8;
+				data = 8;
 				break;
 			}
 			case UART_PARITY_N:
 			{
-				dcb.fParity = 0;
-				dcb.Parity = NOPARITY;
+				parity = 'N';
 				break;
 			}
 			case UART_PARITY_O:
 			{
-				dcb.fParity = 1;
-				dcb.Parity = ODDPARITY;
+				parity = 'O';
 				break;
 			}
 			case UART_PARITY_E:
 			{
-				dcb.fParity = 1;
-				dcb.Parity = EVENPARITY;
+				parity = 'E';
 				break;
 			}
 			case UART_STOP_1:
 			{
-				dcb.StopBits = ONESTOPBIT;
+				stop = 1;
 				break;
 			}
 			case UART_STOP_2:
 			{
-				dcb.StopBits = TWOSTOPBITS;
+				stop = 2;
 				break;
 			}
 			default:
@@ -215,48 +175,15 @@ int uartInit ( uartHandler bus, uint32_t speed, UART_INIT_FLAGS flags )
 		}
 	}
 
-	// windows require that was true
-	dcb.fBinary = 1;
-	
-	// clean rest of struct
-	dcb.fDtrControl = DTR_CONTROL_DISABLE;
-	dcb.fOutxCtsFlow = 0;
-	dcb.fOutxDsrFlow = 0;
-	dcb.fDsrSensitivity = 0;
-	dcb.fOutX = 0;
-	dcb.fInX = 0;
-	dcb.fNull = 0;
-	dcb.fRtsControl = RTS_CONTROL_DISABLE;
+	sprintf ( cmd, "MODE %s:%d,%c,%d,%d", busName, speed, parity, data, stop );
 
 	// Set new state.
-	return ( SetCommState ( bus, &dcb ) == 0 );
+	return ( system ( cmd ) );
 }
 
-int uartSetReadTimeout ( uartHandler bus, uint8_t time, uint8_t min )
+int uartSetReadTimeout ( int bus, uint8_t time, uint8_t min )
 {
-	COMMTIMEOUTS timeouts;
-
-	timeouts.ReadIntervalTimeout = time * 100; 
-	timeouts.ReadTotalTimeoutMultiplier = ( time )? min: 0;
-	timeouts.ReadTotalTimeoutConstant = ( time )? 1: 0;
-	timeouts.WriteTotalTimeoutMultiplier = 0;
-	timeouts.WriteTotalTimeoutConstant = 0;
-
-	return ( SetCommTimeouts ( bus, &timeouts ) == 0 );
-}
-
-int uartRead ( uartHandler bus, uint8_t * buf, size_t size )
-{
-	DWORD rp;
-
-	if ( !ReadFile ( bus, buf, size, &rp, NULL ) )
-	{
-		return ( 0 );
-	}
-	else
-	{
-		return ( (int)rp );
-	}
+	return ( 1 );
 }
 
 
