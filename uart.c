@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 #include "uart.h"
 
 #ifdef __linux__
@@ -121,7 +123,7 @@ int uartInit ( char * busName, uint32_t speed, UART_INIT_FLAGS flags )
 	// set config
 	for ( i = 1; i != 0; i <<= 1 )
 	{
-		switch ( flags )
+		switch ( flags & i )
 		{
 			case UART_DATA_5:
 			{
@@ -177,14 +179,17 @@ int uartInit ( char * busName, uint32_t speed, UART_INIT_FLAGS flags )
 
 	sprintf ( cmd, "MODE %s:%d,%c,%d,%d", busName, speed, parity, data, stop );
 
+	return ( 0 );
+
 	// Set new state.
 	return ( system ( cmd ) );
 }
 
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 int uartSetReadTimeout ( int bus, uint8_t time, uint8_t min )
 {
 	return ( 1 );
 }
-
+#pragma GCC diagnostic pop
 
 #endif
