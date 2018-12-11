@@ -305,6 +305,7 @@ void uartWrite ( uartHandler bus, uint8_t * buf, size_t size )
 
 	WriteFile ( bus, buf, size, &bWr, &overlapWrite );    // Always false because : asynchronous
 	ResetEvent ( overlapWrite.hEvent );
+	CloseHandle ( overlapWrite.hEvent );
 }
 
 int uartRead ( uartHandler bus, uint8_t * buf, size_t size )
@@ -328,6 +329,7 @@ int uartRead ( uartHandler bus, uint8_t * buf, size_t size )
 
 	r = ReadFile ( bus, buf, size, &bRd, &overlapRead );
 	ResetEvent ( overlapRead.hEvent ); // Supression de l'évènement erreur sur la lecture
+	CloseHandle ( overlapRead.hEvent );
 	
 	return ( (int)( (r)?bRd : 0 ) );
 }
