@@ -21,9 +21,11 @@
 #include "uart.h"
 
 #ifdef __linux__
-#include <termios.h>
+#include <sys/ioctl.h>
+#include <asm/termbits.h>
 // ressources :
 // http://manpagesfr.free.fr/man/man3/termios.3.html
+// https://stackoverflow.com/questions/12646324/how-to-set-a-custom-baud-rate-on-linux
 #elif _WIN32
 #include <windows.h>
 #define RX_SIZE         4096    /* taille tampon d'entrée  */
@@ -37,17 +39,19 @@
 uartHandler uartInit ( uartHandler bus, uint32_t speed, UART_INIT_FLAGS flags )
 {
 	uint16_t i = 0;
-	struct termios uart;
+	struct termios2 uart;
 
 	// get old mask
-	if ( tcgetattr ( bus, &uart ) )
+	if ( ioctl ( bus, TCGETS2, &uart ) )
 	{
 		return ( __LINE__ );
 	}
 
 	// set speed
-	cfsetospeed ( &uart, speed );
-	cfsetispeed ( &uart, speed );
+	uart.c_cflag &= ~CBAUD;
+	uart.c_cflag |= BOTHER | CREAD;
+	uart.c_ispeed = speed;
+	uart.c_ospeed = speed;
 
 	// set config
 	for ( i = 1; i != 0; i <<= 1 )
@@ -117,19 +121,22 @@ uartHandler uartInit ( uartHandler bus, uint32_t speed, UART_INIT_FLAGS flags )
 	uart.c_lflag = 0;
 	uart.c_oflag = 0;
 
-	return ( tcsetattr ( bus, TCSANOW, &uart ) );
+	return ( ioctl ( bus, TCSETS2, &uart ) );
 }
 
 int uartSetReadTimeout ( uartHandler bus, uint8_t time, uint8_t min )
 {
 	static struct termios uart;
 
-	tcgetattr ( bus, &uart );
+	if ( ioctl ( bus, TCGETS2, &uart ) )
+	{
+		return  ( __LINE__ );
+	}
 	
 	uart.c_cc[ VMIN ] = min;
 	uart.c_cc[ VTIME ] = time;
 
-	return ( tcsetattr( bus, TCSANOW, &uart ) );
+	return ( ioctl ( bus, TCSETS2, &uart ) );
 }
 #elif _WIN32
 uartHandler uartOpen ( const char * const busName, const int flags )
